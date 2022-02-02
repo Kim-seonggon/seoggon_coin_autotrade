@@ -2,7 +2,6 @@ import time
 import pyupbit
 import datetime
 import schedule
-from fbprophet import Prophet
 import numpy as np
 
 access = "your access code"
@@ -34,28 +33,6 @@ def get_balance(ticker):
 def get_current_price(ticker):
     """현재가 조회"""
     return pyupbit.get_orderbook(ticker=ticker)["orderbook_units"][0]["ask_price"]
-
-predicted_close_price = 0
-def predict_price(ticker):
-    """Prophet으로 당일 종가 가격 예측"""
-    global predicted_close_price
-    df = pyupbit.get_ohlcv(ticker, interval="minute60")
-    df = df.reset_index()
-    df['ds'] = df['index']
-    df['y'] = df['close']
-    data = df[['ds','y']]
-    model = Prophet()
-    model.fit(data)
-    future = model.make_future_dataframe(periods=24, freq='H')
-    forecast = model.predict(future)
-    closeDf = forecast[forecast['ds'] == forecast.iloc[-1]['ds'].replace(hour=9)]
-    if len(closeDf) == 0:
-        closeDf = forecast[forecast['ds'] == data.iloc[-1]['ds'].replace(hour=9)]
-    closeValue = closeDf['yhat'].values[0]
-    predicted_close_price = closeValue
-
-predict_price("KRW-BTC")
-schedule.every().hour.do(lambda: predict_price("KRW-BTC"))
 
 def get_ror(ticker, k=0.5):
     df = pyupbit.get_ohlcv(ticker, count=7)
@@ -118,7 +95,7 @@ while True:
             print("ETH 현재가 : ", ETH_current_price)
 
             # 목표가 도달하면 가상화폐 매수
-            if target_price < current_price and current_price < predicted_close_price:
+            if target_price < current_price:
                 krw = get_balance("KRW")
                 if krw > 5000:
                     upbit.buy_market_order("KRW-BTC", krw*0.9995)
