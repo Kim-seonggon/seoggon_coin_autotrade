@@ -1,11 +1,10 @@
 import time
 import pyupbit
 import datetime
-import schedule
 import numpy as np
 
-access = "your access code"
-secret = "your secret code"
+access = "vjCipsOkzxJxWboOn81c67f1LkBQzwxm52yTdbx2"
+secret = "Fm8HvotxFzTww6xZTwqqxYa2YEH57khTONQzjsb8"
 
 def get_target_price(ticker, k):
     """변동성 돌파 전략으로 매수 목표가 조회"""
@@ -77,9 +76,9 @@ print("autotrade start")
 while True:
     try:
         now = datetime.datetime.now()
-        start_time = get_start_time("KRW-BTC")
+        # 평균적을 00~06시 사이에 코인 가격이 상승하므로 그때 매도
+        start_time = get_start_time("KRW-BTC") - datetime.timedelta(hours=3)
         end_time = start_time + datetime.timedelta(days=1)
-        schedule.run_pending()
         
 
         if start_time < now < end_time - datetime.timedelta(seconds=10):
@@ -89,27 +88,26 @@ while True:
             ETH_target_price = get_target_price("KRW-ETH", bestk_for_ETH)
             ETH_current_price = get_current_price("KRW-ETH")
             
-            print("BTC 목표가 : ", target_price)
-            print("BTC 현재가 : ", current_price)
-            print("ETH 목표가 : ", ETH_target_price)
-            print("ETH 현재가 : ", ETH_current_price)
-
             # 목표가 도달하면 가상화폐 매수
             if target_price < current_price:
                 krw = get_balance("KRW")
                 if krw > 5000:
                     upbit.buy_market_order("KRW-BTC", krw*0.9995)
+                    print(now, "BTC buy at ", current_price)
             if ETH_target_price < ETH_current_price:
                 krw = get_balance("KRW")
                 if krw > 5000:
                     upbit.buy_market_order("KRW-ETH", krw*0.9995)
+                    print(now, "ETH buy at ", ETH_current_price)
             
             # 현재가가 목표가 대비 5% 이상 하락하며 던지기
             if current_price < (target_price*0.95):
+                print(now, "BTC DROP")
                 time.sleep(1)
                 if btc > 0.00008:
                     upbit.sell_market_order("KRW-BTC", btc)
             if ETH_current_price < (ETH_target_price*0.95):
+                print(now, "ETH DROP")
                 time.sleep(1)
                 if eth > 0.001:
                     upbit.sell_market_order("KRW-ETH", eth)
@@ -119,9 +117,11 @@ while True:
             eth = get_balance("ETH")
             if btc > 0.00008:
                 upbit.sell_market_order("KRW-BTC", btc)
+                print(now, "Sell BTC at ", current_price)
             time.sleep(1)
             if eth > 0.001:
                 upbit.sell_market_order("KRW-ETH", eth)
+                print(now, "Sell ETH at ", ETH_current_price)
             time.sleep(1)
             bestk = get_best_k("KRW-BTC")
             time.sleep(1)
